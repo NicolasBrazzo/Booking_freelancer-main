@@ -25,10 +25,10 @@ export default function Nav() {
       </ul>
 
       <div className="flex gap-2 items-center">
-        <Link to="/early-access" className="inline-flex items-center gap-2 px-[14px] py-[10px] rounded-full text-[13.5px] font-semibold text-neutral-400 no-underline transition-all duration-200 hover:text-neutral-50">
+        <Link to="/login" className="inline-flex items-center gap-2 px-[14px] py-[10px] rounded-full text-[13.5px] font-semibold text-neutral-400 no-underline transition-all duration-200 hover:text-neutral-50">
           Accedi
         </Link>
-        <Link to="/early-access" className="inline-flex items-center gap-2 px-[18px] py-[10px] rounded-full text-[13.5px] font-semibold text-white no-underline bg-primary transition-all duration-200 hover:bg-primary-600 hover:-translate-y-px">
+        <Link to="/login" className="inline-flex items-center gap-2 px-[18px] py-[10px] rounded-full text-[13.5px] font-semibold text-white no-underline bg-primary transition-all duration-200 hover:bg-primary-600 hover:-translate-y-px">
           Inizia gratis
         </Link>
       </div>
