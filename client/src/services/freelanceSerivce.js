@@ -13,7 +13,7 @@ export const firstAccess = async () => {
 // Recupera profilo freelancer
 export const getProfile = async () => {
   try {
-    const res = await api.get("/api/auth/me");
+    const res = await api.get("/auth/me");
     return res.data.user;
   } catch (error) {
     throw error;
@@ -23,7 +23,7 @@ export const getProfile = async () => {
 // Aggiorna profilo freelancer (business_name, description)
 export const updateProfile = async (data) => {
   try {
-    const res = await api.put("/api/auth/profile", data);
+    const res = await api.put("/auth/profile", data);
     return res.data;
   } catch (error) {
     throw error;

@@ -1,6 +1,6 @@
 const express = require("express");
-const { z } = require("zod");
-const { validate } = require("../middleware/validate");
+const { validate, validateQuery } = require("../middleware/validate");
+const { bookingRules, slotsQueryRules } = require("../constants/validationRules");
 const Freelancer = require("../models/freelancer.model");
 const Service = require("../models/services.model");
 const Booking = require("../models/bookings.model");
@@ -8,17 +8,6 @@ const { calculateAvailableSlots } = require("../utils/slots");
 const { createCalendarEvent } = require("../services/googleCalendar");
 
 const router = express.Router();
-
-const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
-const bookSchema = z.object({
-  service_id: z.string().uuid("service_id deve essere un UUID valido"),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato data YYYY-MM-DD richiesto"),
-  start_time: z.string().regex(timeRegex, "Formato HH:MM richiesto per start_time"),
-  client_name: z.string().min(1, "Il nome cliente è obbligatorio").max(100),
-  client_email: z.string().email("Email non valida"),
-  client_phone: z.string().max(20).optional(),
-  notes: z.string().max(500).optional(),
-});
 
 // GET /api/public/:code — Info professionista + servizi attivi
 router.get("/:code", async (req, res) => {
@@ -38,18 +27,9 @@ router.get("/:code", async (req, res) => {
 });
 
 // GET /api/public/:code/slots?date=YYYY-MM-DD&serviceId=xxx — Slot disponibili
-router.get("/:code/slots", async (req, res) => {
+router.get("/:code/slots", validateQuery(slotsQueryRules), async (req, res) => {
   try {
     const { date, serviceId } = req.query;
-
-    if (!date || !serviceId) {
-      return res.status(400).json({ ok: false, error: "Parametri date e serviceId obbligatori" });
-    }
-
-    // Validate date format
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({ ok: false, error: "Formato data non valido (YYYY-MM-DD)" });
-    }
 
     // Check date is not in the past
     const today = new Date().toISOString().split("T")[0];
@@ -79,7 +59,7 @@ router.get("/:code/slots", async (req, res) => {
 });
 
 // POST /api/public/:code/book — Crea prenotazione
-router.post("/:code/book", validate(bookSchema), async (req, res) => {
+router.post("/:code/book", validate(bookingRules), async (req, res) => {
   try {
     const { service_id, date, start_time, client_name, client_email, client_phone, notes } = req.body;
 
@@ -117,10 +97,10 @@ router.post("/:code/book", validate(bookSchema), async (req, res) => {
       service_id,
       date: dateTimestamp,
       end_date: endDateTimestamp,
-      client_name: client_name.trim(),
-      client_email: client_email.trim(),
-      client_phone: client_phone?.trim() || null,
-      notes: notes?.trim() || null,
+      client_name,
+      client_email,
+      client_phone: client_phone || null,
+      notes: notes || null,
       status: "confirmed",
       price_booking: service.price,
     });

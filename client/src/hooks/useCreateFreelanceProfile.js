@@ -1,6 +1,8 @@
 import { getProfile, updateProfile } from "@/services/freelanceSerivce";
 import { fetchServices, createService } from "@/services/servicesService";
 import { showError, showSuccess } from "@/utils/toast";
+import { validateForm } from "@/utils/validators";
+import { profileRules, serviceRules } from "@/constants/validation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -55,25 +57,19 @@ export const useCreateFreelanceProfile = () => {
 
   const isSubmitting = profileMutation.isPending || serviceMutation.isPending;
 
-  const validate = () => {
-    const required = [profile.business_name, service.name, service.duration_minutes, service.price];
-    return required.every(Boolean);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return showError("Compila tutti i campi obbligatori");
+
+    const profileResult = validateForm(profile, profileRules);
+    if (profileResult.errors.length > 0) return showError(profileResult.errors[0]);
+
+    const serviceResult = validateForm(service, serviceRules);
+    if (serviceResult.errors.length > 0) return showError(serviceResult.errors[0]);
 
     try {
-      await profileMutation.mutateAsync({
-        business_name: profile.business_name,
-        description: profile.description,
-        business_type: profile.business_type,
-      });
+      await profileMutation.mutateAsync(profileResult.values);
       await serviceMutation.mutateAsync({
-        ...service,
-        duration_minutes: Number(service.duration_minutes),
-        price: Number(service.price),
+        ...serviceResult.values,
         is_active: true,
         color: "#3B82F6",
       });

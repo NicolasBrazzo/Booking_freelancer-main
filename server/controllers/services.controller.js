@@ -1,28 +1,14 @@
 const express = require("express");
-const { z } = require("zod");
 const protect = require("../middleware/auth");
-const { validate } = require("../middleware/validate");
+const { validate, validateParams } = require("../middleware/validate");
+const {
+  serviceCreateRules,
+  serviceUpdateRules,
+  uuidParamRules,
+} = require("../constants/validationRules");
 const Services = require("../models/services.model");
 
 const router = express.Router();
-
-const createServiceSchema = z.object({
-  name: z.string().min(1, "Il nome è obbligatorio").max(100),
-  duration_minutes: z.coerce.number().int().positive("La durata deve essere positiva"),
-  price: z.coerce.number().min(0, "Il prezzo non può essere negativo"),
-  description: z.string().max(500).optional(),
-  color: z.string().optional(),
-  is_active: z.boolean().optional(),
-});
-
-const updateServiceSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  duration_minutes: z.coerce.number().int().positive().optional(),
-  price: z.coerce.number().min(0).optional(),
-  description: z.string().max(500).optional(),
-  color: z.string().optional(),
-  is_active: z.boolean().optional(),
-}).refine((data) => Object.keys(data).length > 0, { message: "Nessun campo da aggiornare" });
 
 // GET /api/services — Lista servizi del professionista
 router.get("/", protect, async (req, res) => {
@@ -36,7 +22,7 @@ router.get("/", protect, async (req, res) => {
 });
 
 // POST /api/services — Crea servizio
-router.post("/", protect, validate(createServiceSchema), async (req, res) => {
+router.post("/", protect, validate(serviceCreateRules), async (req, res) => {
   try {
     const service = await Services.create({
       ...req.body,
@@ -50,13 +36,17 @@ router.post("/", protect, validate(createServiceSchema), async (req, res) => {
 });
 
 // PUT /api/services/:id — Modifica servizio
-router.put("/:id", protect, validate(updateServiceSchema), async (req, res) => {
+router.put("/:id", protect, validateParams(uuidParamRules), validate(serviceUpdateRules), async (req, res) => {
   try {
+    if (Object.keys(req.body).length === 0) {
+      return res.status(400).json({ ok: false, error: "Nessun campo da aggiornare" });
+    }
+
     const existing = await Services.findById(req.params.id);
     if (!existing || existing.professional_id !== req.user.sub) {
       return res.status(404).json({ ok: false, error: "Servizio non trovato" });
     }
-    const  updated= await Services.updateById(req.params.id, req.body);
+    const updated = await Services.updateById(req.params.id, req.body);
     res.json({ ok: true, data: updated });
   } catch (err) {
     console.error("UPDATE SERVICE ERROR:", err);
@@ -65,7 +55,7 @@ router.put("/:id", protect, validate(updateServiceSchema), async (req, res) => {
 });
 
 // DELETE /api/services/:id — Elimina servizio
-router.delete("/:id", protect, async (req, res) => {
+router.delete("/:id", protect, validateParams(uuidParamRules), async (req, res) => {
   try {
     const existing = await Services.findById(req.params.id);
     if (!existing || existing.professional_id !== req.user.sub) {

@@ -5,6 +5,8 @@ const { google } = require("googleapis");
 
 const Freelancer = require("../models/freelancer.model");
 const protect = require("../middleware/auth");
+const { validate } = require("../middleware/validate");
+const { profileCreateRules } = require("../constants/validationRules");
 
 const { JWT_SECRET, JWT_EXPIRES_IN } = require("../config/jwt");
 const { createOAuth2Client, SCOPES } = require("../config/google");
@@ -116,14 +118,9 @@ router.post("/logout", (req, res) => {
 });
 
 // ── PUT /auth/profile — Aggiorna profilo freelancer ─────────────
-router.put("/profile", protect, async (req, res) => {
+router.put("/profile", protect, validate(profileCreateRules), async (req, res) => {
   try {
-    const { business_name, description, business_type } = req.body;
-    const updated = await Freelancer.updateById(req.user.sub, {
-      business_name,
-      description,
-      business_type,
-    });
+    const updated = await Freelancer.updateById(req.user.sub, req.body);
     res.json({ ok: true, data: updated });
   } catch (err) {
     console.error("UPDATE PROFILE ERROR:", err);

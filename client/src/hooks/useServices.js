@@ -7,6 +7,8 @@ import {
   deleteService,
 } from "@/services/servicesService";
 import { showSuccess, showError } from "@/utils/toast";
+import { validateForm } from "@/utils/validators";
+import { serviceRules } from "@/constants/validation";
 
 const INITIAL_FORM = {
   name: "",
@@ -87,22 +89,17 @@ export const useServices = () => {
     setFormData(INITIAL_FORM);
   };
 
-  const validate = () => {
-    const { name, duration_minutes } = formData;
-    return name.trim() && duration_minutes;
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validate()) return showError("Compila tutti i campi obbligatori");
+
+    const { errors, values } = validateForm(formData, serviceRules);
+    if (errors.length > 0) return showError(errors[0]);
 
     const payload = {
-      ...formData,
-      duration_minutes: Number(formData.duration_minutes),
-      price: Number(formData.price),
+      ...values,
+      color: formData.color,
+      is_active: formData.is_active,
     };
-
-    console.log(payload);
 
     if (editingService) {
       updateMutation.mutate({ id: editingService.id, data: payload });

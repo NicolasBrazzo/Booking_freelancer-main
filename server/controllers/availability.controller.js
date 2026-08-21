@@ -1,19 +1,39 @@
 const express = require("express");
-const { z } = require("zod");
 const protect = require("../middleware/auth");
+const { validateFields } = require("../utils/validateFields");
+const { availabilityDayRules } = require("../constants/validationRules");
 const { findByProfessionalId, upsert } = require("../models/availability.model");
 
 const router = express.Router();
 
-const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
-const availabilitySchema = z.array(
-  z.object({
-    day_of_week: z.coerce.number().int().min(0).max(6),
-    start_time: z.string().regex(timeRegex, "Formato HH:MM richiesto per start_time"),
-    end_time: z.string().regex(timeRegex, "Formato HH:MM richiesto per end_time"),
-    is_active: z.boolean(),
-  }).refine((d) => d.start_time < d.end_time, { message: "start_time deve essere prima di end_time" })
-).min(1, "Array disponibilità non può essere vuoto");
+const DAY_NAMES = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+
+// Il body è un array di giorni, quindi non passa dal middleware validate (che
+// lavora su oggetti): si valida ogni elemento con le stesse regole e si
+// nomina il giorno nel messaggio, altrimenti l'utente non sa quale riga correggere.
+const validateAvailability = (body) => {
+  if (!Array.isArray(body) || body.length === 0) {
+    return { error: "Nessuna disponibilità da salvare", days: [] };
+  }
+
+  const days = [];
+
+  for (const item of body) {
+    const { errors, values } = validateFields(item, availabilityDayRules);
+    const dayName = DAY_NAMES[Number(item?.day_of_week)] || "Giorno";
+
+    if (errors.length > 0) {
+      return { error: `${dayName}: ${errors[0].toLowerCase()}`, days: [] };
+    }
+    if (values.start_time >= values.end_time) {
+      return { error: `${dayName}: l'orario di fine deve essere successivo a quello di inizio`, days: [] };
+    }
+
+    days.push(values);
+  }
+
+  return { error: null, days };
+};
 
 // GET /api/availability — Ritorna disponibilità settimanale
 router.get("/", protect, async (req, res) => {
@@ -29,14 +49,13 @@ router.get("/", protect, async (req, res) => {
 // PUT /api/availability — Aggiorna disponibilità (body: array di 7 giorni)
 router.put("/", protect, async (req, res) => {
   try {
-    const parsed = availabilitySchema.safeParse(req.body);
-    if (!parsed.success) {
-      const message = parsed.error.errors[0]?.message || "Dati non validi";
-      return res.status(400).json({ ok: false, error: message });
+    const { error, days } = validateAvailability(req.body);
+    if (error) {
+      return res.status(400).json({ ok: false, error });
     }
 
     // Assicura che ogni record abbia il professional_id corretto (quello in sessione)
-    const dataToSave = parsed.data.map((item) => ({
+    const dataToSave = days.map((item) => ({
       professional_id: req.user.sub,
       day_of_week: item.day_of_week,
       start_time: item.start_time,

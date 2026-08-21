@@ -1,23 +1,12 @@
 const express = require("express");
-const { z } = require("zod");
 const router = express.Router();
 const protect = require("../middleware/auth");
-const { validate } = require("../middleware/validate");
+const { validate, validateParams } = require("../middleware/validate");
+const { profileRules, uuidParamRules } = require("../constants/validationRules");
 const Freelancer = require("../models/freelancer.model");
 
-const VALID_COLORS = ["indigo", "violet", "blue", "emerald", "orange", "rose", "red", "slate"];
-const VALID_LAYOUTS = ["sidebar", "centered", "minimal"];
-
-const profileSchema = z.object({
-  business_name: z.string().min(1).max(100).optional(),
-  description: z.string().max(1000).optional(),
-  business_type: z.string().max(50).optional(),
-  booking_page_color: z.enum(VALID_COLORS).optional(),
-  booking_page_layout: z.enum(VALID_LAYOUTS).optional(),
-});
-
 // GET /freelancers/image/:id — Ottieni immagine profilo freelancer
-router.get("/image/:id", async (req, res) => {
+router.get("/image/:id", validateParams(uuidParamRules), async (req, res) => {
   try {
     const { id } = req.params;
     const freelancerImage = await Freelancer.findById(id);
@@ -32,7 +21,7 @@ router.get("/image/:id", async (req, res) => {
 });
 
 // PUT /freelancers/:id — Aggiorna profilo freelancer
-router.put("/:id", protect, validate(profileSchema), async (req, res) => {
+router.put("/:id", protect, validateParams(uuidParamRules), validate(profileRules), async (req, res) => {
   try {
     const freelancerId = req.params.id;
     if (freelancerId !== req.user.sub) {
@@ -40,6 +29,10 @@ router.put("/:id", protect, validate(profileSchema), async (req, res) => {
     }
 
     const updates = req.body;
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ ok: false, error: "Nessun campo da aggiornare" });
+    }
+
     const updated = await Freelancer.updateById(freelancerId, updates);
     res.json({ ok: true, data: updated });
   } catch (err) {

@@ -4,6 +4,7 @@ import { fetchAvailability, updateAvailability } from "../services/availabilityS
 import { Button } from "@/components/ui/button";
 import { showError, showSuccess } from "@/utils/toast";
 import { cn } from "@/utils/cnFunc";
+import { isValidTime } from "@/utils/validators";
 
 import { DAYS_OF_WEEK, DEFAULT_AVAILABILITY } from "@/constants/availability";
 import { Loader } from "@/components/Loader";
@@ -54,7 +55,23 @@ export const Availability = () => {
     setLocalAvailability(updated);
   };
 
+  // Solo i giorni attivi vengono controllati: su un giorno spento gli orari sono
+  // disabilitati e possono restare vuoti. Sono le stesse due regole applicate
+  // dal backend, anticipate qui col nome del giorno per dire dove correggere.
   const handleSave = () => {
+    for (const day of localAvailability) {
+      if (!day.is_active) continue;
+
+      const label = DAYS_OF_WEEK.find((d) => d.id === day.day_of_week)?.label ?? "Giorno";
+
+      if (!isValidTime(day.start_time) || !isValidTime(day.end_time)) {
+        return showError(`${label}: inserisci un orario di inizio e di fine validi`);
+      }
+      if (day.start_time >= day.end_time) {
+        return showError(`${label}: l'orario di fine deve essere successivo a quello di inizio`);
+      }
+    }
+
     mutation.mutate(localAvailability);
   };
 

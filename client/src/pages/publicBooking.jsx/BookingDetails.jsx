@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { showError } from "@/utils/toast";
+import { validateForm } from "@/utils/validators";
+import { bookingRules } from "@/constants/validation";
 import { ArrowLeft, Clock, Calendar as CalendarIcon, Clock3, User, Mail, Phone, FileText } from "lucide-react";
 import { BookingLayout } from "@/components/publicBooking/BookingLayout";
 import { COLOR_PRESETS, DEFAULT_COLOR, DEFAULT_LAYOUT } from "@/constants/appearance";
@@ -76,17 +78,15 @@ export const BookingDetails = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.client_name.trim() || !form.client_email.trim()) {
-      return showError("Nome e email sono obbligatori");
-    }
+
+    const { errors, values } = validateForm(form, bookingRules);
+    if (errors.length > 0) return showError(errors[0]);
+
     bookingMutation.mutate({
       service_id: serviceId,
       date,
       start_time: time,
-      client_name: form.client_name,
-      client_email: form.client_email,
-      client_phone: form.client_phone || undefined,
-      notes: form.notes || undefined,
+      ...values,
     });
   };
 

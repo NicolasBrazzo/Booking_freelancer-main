@@ -1,5 +1,7 @@
 const express = require("express");
 const protect = require("../middleware/auth");
+const { validateQuery, validateParams } = require("../middleware/validate");
+const { bookingStatusQueryRules, uuidParamRules } = require("../constants/validationRules");
 const {
   findByProfessionalId,
   findById,
@@ -11,7 +13,7 @@ const { deleteCalendarEvent } = require("../services/googleCalendar");
 const router = express.Router();
 
 // GET /api/bookings — Lista prenotazioni (con filtro ?status=)
-router.get("/", protect, async (req, res) => {
+router.get("/", protect, validateQuery(bookingStatusQueryRules), async (req, res) => {
   try {
     const { status } = req.query;
     const data = await findByProfessionalId(req.user.sub, status || null);
@@ -27,7 +29,7 @@ router.get("/", protect, async (req, res) => {
 });
 
 // GET /api/bookings/:id — Dettaglio singola prenotazione
-router.get("/:id", protect, async (req, res) => {
+router.get("/:id", protect, validateParams(uuidParamRules), async (req, res) => {
   try {
     const data = await findById(req.params.id);
 
@@ -52,7 +54,7 @@ router.get("/:id", protect, async (req, res) => {
 });
 
 // DELETE /api/bookings/:id — Cancella prenotazione + evento calendar
-router.delete("/:id", protect, async (req, res) => {
+router.delete("/:id", protect, validateParams(uuidParamRules), async (req, res) => {
   try {
     const booking = await findById(req.params.id);
 

@@ -1,18 +1,16 @@
 const express = require("express");
-const { z } = require("zod");
 const { validate } = require("../middleware/validate");
+const { waitlistRules } = require("../constants/validationRules");
 const Waitlist = require("../models/waitlist.model");
 const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const router = express.Router();
 
-const waitlistSchema = z.object({
-  email: z.string().email("Inserisci un'email valida"),
-});
-
-router.post("/", validate(waitlistSchema), async (req, res) => {
-  const { email } = req.body;
+router.post("/", validate(waitlistRules), async (req, res) => {
+  // La colonna email ha un vincolo unique: senza normalizzare il maiuscolo,
+  // Foo@x.com e foo@x.com finirebbero in due righe distinte.
+  const email = req.body.email.toLowerCase();
   try {
     const existing = await Waitlist.findByEmail(email);
     if (!existing) {

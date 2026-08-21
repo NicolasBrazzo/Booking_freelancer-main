@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import api from "@/api/client";
+import { validateForm } from "@/utils/validators";
+import { waitlistRules } from "@/constants/validation";
 
 export const EarlyAccess = () => {
   const navigate = useNavigate();
@@ -14,10 +16,14 @@ export const EarlyAccess = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const { errors, values } = validateForm({ email }, waitlistRules);
+    if (errors.length > 0) return setError(errors[0]);
+
     setError(null);
     setLoading(true);
     try {
-      await api.post("/api/waitlist", { email });
+      await api.post("/api/waitlist", values);
       setDone(true);
       setTimeout(() => navigate("/"), 2000);
     } catch {
