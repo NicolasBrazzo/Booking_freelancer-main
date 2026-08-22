@@ -1,6 +1,10 @@
 // Barrel: import unico per i validatori lato server.
 //   const { validateEmail, isValidText } = require("../utils/validators");
 // Speculare a client/src/utils/validators/index.js.
+//
+// validateCodiceFiscale.js, validatePartitaIva.js e validatePassword.js vivono
+// in questa cartella ma non sono esportati: nessuna rotta li usa ancora
+// (l'accesso è solo via Google OAuth). Aggiungerli qui quando servono.
 const { validateEmail } = require("./validateEmail");
 const { validateName } = require("./validateName");
 const { validatePhoneNumber } = require("./validatePhoneNumber");

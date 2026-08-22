@@ -1,6 +1,6 @@
 // Regole di validazione di tutte le rotte, in un posto solo: ogni voce è una
 // mappa campo → regola consumata da middleware/validate.js (vedi la forma in
-// utils/validateFields.js). I messaggi sono quelli che l'utente legge.
+// utils/validators/validateFields.js). I messaggi sono quelli che l'utente legge.
 //
 // Speculare a client/src/constants/validation.js: le stesse regole vengono
 // applicate nel browser prima dell'invio, così il messaggio non cambia.

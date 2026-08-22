@@ -1,7 +1,7 @@
-const { validateFields } = require("../utils/validateFields");
+const { validateFields } = require("../utils/validators/validateFields");
 
 // Costruisce un middleware che valida una porzione della richiesta con una mappa
-// di regole (vedi utils/validateFields.js) e risponde 400 col primo messaggio
+// di regole (vedi utils/validators/validateFields.js) e risponde 400 col primo messaggio
 // utile. In caso di successo la porzione viene sostituita dai valori ripuliti,
 // così i controller ricevono dati già trimmati, convertiti e senza chiavi estranee.
 const validatePart = (part, rules) => (req, res, next) => {

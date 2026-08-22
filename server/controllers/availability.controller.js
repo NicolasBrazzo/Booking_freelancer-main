@@ -1,6 +1,6 @@
 const express = require("express");
 const protect = require("../middleware/auth");
-const { validateFields } = require("../utils/validateFields");
+const { validateFields } = require("../utils/validators/validateFields");
 const { availabilityDayRules } = require("../constants/validationRules");
 const { findByProfessionalId, upsert } = require("../models/availability.model");
 
