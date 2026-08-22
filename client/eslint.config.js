@@ -15,7 +15,8 @@ export default defineConfig([
     ],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.browser,
+      // Iniettato da `define` in vite.config.js (versione dal package.json).
+      globals: { ...globals.browser, __APP_VERSION__: 'readonly' },
       parserOptions: {
         ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },
@@ -25,5 +26,11 @@ export default defineConfig([
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
+  },
+  {
+    // I file di configurazione girano in Node, non nel browser: qui __dirname e
+    // process esistono davvero.
+    files: ['*.config.js'],
+    languageOptions: { globals: globals.node },
   },
 ])

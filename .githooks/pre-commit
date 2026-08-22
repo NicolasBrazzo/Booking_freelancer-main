@@ -1,0 +1,58 @@
+#!/bin/sh
+# Blocca ogni commit che non alza il numero di versione.
+#
+# Il confronto e' fra la versione nell'index (cioe' quella che finirebbe nel
+# commit) e quella in HEAD: se coincidono, il commit non porta un bump e viene
+# rifiutato. Leggere dall'index e non dal working tree e' voluto — un bump fatto
+# ma non messo in stage con `git add package.json` non conta.
+#
+# I file ignorati da .gitignore (CLAUDE.md, .env, dist/, ...) non possono essere
+# messi in stage, quindi non fanno mai scattare il controllo: vale solo per cio'
+# che si vede su GitHub.
+#
+# Abilitato da `git config core.hooksPath .githooks` (lo fa lo script `prepare`
+# di package.json a ogni `npm install` nella radice).
+
+git_dir=$(git rev-parse --git-dir)
+
+# Durante un merge il commit e' generato da git, non e' una modifica da versionare.
+[ -f "$git_dir/MERGE_HEAD" ] && exit 0
+
+# Primo commit del repo: non c'e' un HEAD con cui confrontare.
+git rev-parse --verify HEAD >/dev/null 2>&1 || exit 0
+
+# Niente in stage: ci pensa git a fermarsi.
+git diff --cached --quiet && exit 0
+
+read_version() {
+  sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1
+}
+
+staged_version=$(git show :package.json 2>/dev/null | read_version)
+head_version=$(git show HEAD:package.json 2>/dev/null | read_version)
+
+if [ -z "$staged_version" ]; then
+  echo "pre-commit: impossibile leggere \"version\" da package.json nell'index." >&2
+  exit 1
+fi
+
+if [ "$staged_version" = "$head_version" ]; then
+  cat >&2 <<MESSAGE
+
+  ✗ Commit bloccato: la versione e' ferma a $head_version.
+
+    Ogni commit deve alzarla. Scegli il livello in base a cosa hai cambiato:
+
+      npm run v:patch   ritocchi, fix, refactor invisibili      $head_version -> $(echo "$head_version" | awk -F. '{print $1"."$2"."$3+1}')
+      npm run v:minor   nuova pagina, endpoint, funzionalita'   $head_version -> $(echo "$head_version" | awk -F. '{print $1"."$2+1".0"}')
+      npm run v:major   restyling, breaking change, piu' feature $head_version -> $(echo "$head_version" | awk -F. '{print $1+1".0.0"}')
+
+    Poi:  git add package.json && git commit ...
+
+    Per saltare il controllo (merge, amend, commit di emergenza): git commit --no-verify
+
+MESSAGE
+  exit 1
+fi
+
+exit 0

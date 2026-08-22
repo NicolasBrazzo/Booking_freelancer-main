@@ -78,6 +78,10 @@ export const Settings = () => {
             Esci
           </Button>
         </div>
+
+        <div className="text-sm text-muted-foreground">
+          Versione: <span className="font-medium">{__APP_VERSION__}</span>
+        </div>
       </div>
     </div>
   );
