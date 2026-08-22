@@ -62,7 +62,7 @@ function App() {
                       <Route path="/availability" element={<Availability />} />
                       <Route path="/bookings" element={<Bookings />} />
                       <Route path="/bookings/:id" element={<BookingDetails />} />
-                      <Route path="/appearance" element={<Appearance />} />
+                      {/* <Route path="/appearance" element={<Appearance />} /> */}
                       <Route path="/settings" element={<Settings />} />
                     </Route>
                   </Route>
