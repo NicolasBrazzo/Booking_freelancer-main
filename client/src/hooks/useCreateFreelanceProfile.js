@@ -11,6 +11,14 @@ import { useAuth } from "@/context/AuthContext";
 const INITIAL_PROFILE = { business_name: "", description: "", business_type: "" };
 const INITIAL_SERVICE = { name: "", description: "", duration_minutes: "", price: "" };
 
+// Vero solo se tutti i campi marcati come required nelle regole sono compilati.
+// Serve ad abilitare il pulsante di invio: la validazione vera e propria (formato,
+// lunghezze) resta a validateForm al submit, con i suoi messaggi.
+const hasRequiredFields = (data, rules) =>
+  Object.entries(rules).every(
+    ([field, rule]) => !rule.required || String(data[field] ?? "").trim() !== ""
+  );
+
 export const useCreateFreelanceProfile = () => {
   const navigate = useNavigate();
   const { refreshFirstAccess } = useAuth();
@@ -57,6 +65,9 @@ export const useCreateFreelanceProfile = () => {
 
   const isSubmitting = profileMutation.isPending || serviceMutation.isPending;
 
+  const isComplete =
+    hasRequiredFields(profile, profileRules) && hasRequiredFields(service, serviceRules);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -84,5 +95,14 @@ export const useCreateFreelanceProfile = () => {
   const onProfileChange = (key, value) => setProfile((p) => ({ ...p, [key]: value }));
   const onServiceChange = (key, value) => setService((s) => ({ ...s, [key]: value }));
 
-  return { profile, service, onProfileChange, onServiceChange, isSubmitting, isLoading, handleSubmit };
+  return {
+    profile,
+    service,
+    onProfileChange,
+    onServiceChange,
+    isSubmitting,
+    isLoading,
+    isComplete,
+    handleSubmit,
+  };
 };

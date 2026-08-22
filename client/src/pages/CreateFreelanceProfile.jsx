@@ -19,6 +19,7 @@ export const CreateFreelanceProfile = () => {
     onServiceChange,
     isSubmitting,
     isLoading,
+    isComplete,
     handleSubmit,
   } = useCreateFreelanceProfile();
 
@@ -156,7 +157,7 @@ export const CreateFreelanceProfile = () => {
           <Button
             type="submit"
             className="w-full h-11 text-sm font-medium"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isComplete}
           >
             {isSubmitting ? <Loader size="sm" /> : "Entra in Volta"}
           </Button>
