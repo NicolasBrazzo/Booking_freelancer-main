@@ -1,0 +1,64 @@
+#!/bin/sh
+# Alza da solo la versione in package.json a ogni commit, scegliendo il livello
+# dal prefisso del messaggio, e la aggiunge al commit appena creato con --amend.
+#
+#   feat!:  |  footer BREAKING CHANGE:     ->  major   X.y.z
+#   feat:                                  ->  minor   x.Y.z
+#   qualsiasi altro prefisso, o nessuno    ->  patch   x.y.Z
+#
+# Perche' post-commit e non pre-commit: il livello si legge dal messaggio, che
+# in pre-commit non esiste ancora. E perche' non prepare-commit-msg o commit-msg:
+# git fotografa l'index prima di quegli hook, quindi un `git add` fatto li'
+# riesce ma finisce nel commit *successivo* (verificato). Restava --amend.
+#
+# Abilitato da `git config core.hooksPath .githooks`, che lo script `prepare` di
+# package.json esegue a ogni `npm install` nella radice.
+# Spiegazione completa: .githooks/README.md
+
+git_dir=$(git rev-parse --git-dir)
+
+# Operazioni in cui il commit lo costruisce git: non sono modifiche da versionare.
+[ -f "$git_dir/MERGE_HEAD" ] && exit 0
+[ -f "$git_dir/CHERRY_PICK_HEAD" ] && exit 0
+[ -f "$git_dir/REVERT_HEAD" ] && exit 0
+[ -d "$git_dir/rebase-merge" ] && exit 0
+[ -d "$git_dir/rebase-apply" ] && exit 0
+
+# `git rev-list --parents -n 1` stampa il commit e i suoi genitori: 1 parola sola
+# e' il commit iniziale, 2 e' un commit normale, 3+ e' un merge.
+parents=$(git rev-list --parents -n 1 HEAD | wc -w)
+[ "$parents" -gt 2 ] && exit 0
+
+# Se il commit cambia gia' la versione, il bump e' stato fatto: non va rifatto.
+# Copre due casi in uno: l'amend qui sotto, che rilancerebbe questo stesso hook
+# all'infinito, e l'amend che fai tu su un commit gia' versionato.
+if [ "$parents" -eq 2 ]   && git diff HEAD~1 HEAD -- package.json | grep -q '^[+-][[:space:]]*"version"'; then
+  exit 0
+fi
+
+message=$(git log -1 --pretty=%B)
+subject=$(printf '%s\n' "$message" | sed '/^[[:space:]]*$/d' | head -1)
+
+# `BREAKING CHANGE` conta solo come footer a inizio riga seguito dai due punti,
+# come vuole conventional-commits. Cercarlo ovunque nel testo farebbe scattare un
+# major ogni volta che il messaggio *nomina* la regola invece di applicarla.
+if printf '%s\n' "$message" | grep -Eq '^BREAKING[ -]CHANGE:' \
+  || printf '%s\n' "$subject" | grep -Eq '^[a-z]+(\([^)]*\))?!:'; then
+  level=major
+elif printf '%s\n' "$subject" | grep -Eq '^feat(\([^)]*\))?:'; then
+  level=minor
+else
+  level=patch
+fi
+
+new_version=$(npm version "$level" --no-git-tag-version 2>/dev/null | tr -d 'v \r\n')
+
+if [ -z "$new_version" ]; then
+  echo "post-commit: bump della versione fallito. Il commit e' stato creato SENZA bump." >&2
+  exit 0
+fi
+
+git add package.json
+git commit --amend --no-edit --no-verify --quiet
+
+echo "  versione -> $new_version ($level)" >&2
