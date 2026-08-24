@@ -80,7 +80,7 @@ export const Settings = () => {
         </div>
 
         <div className="text-sm text-muted-foreground">
-          Versione: <span className="font-medium">{__APP_VERSION__}</span>
+          Versione: <span className="font-medium">{import.meta.env.VITE_APP_VERSION}</span>
         </div>
       </div>
     </div>
