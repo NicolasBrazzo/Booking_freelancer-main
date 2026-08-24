@@ -72,15 +72,6 @@ nell'istante successivo al commit.
 
 **1. I merge fra branch vanno in conflitto su `package.json`.** Se `dev` e
 `main` hanno entrambi alzato la versione, git non sa quale tenere:
-
-```
-<<<<<<< HEAD
-  "version": "1.1.2"
-=======
-  "version": "1.2.0"
->>>>>>> feature
-```
-
 Si risolve tenendo **la più alta**, poi `git add package.json` e si conclude il
 merge. È un conflitto di una riga, ma capita a ogni merge: è il prezzo di avere
 un bump in ogni commit.
