@@ -11,7 +11,7 @@ async function seedDefaults(freelancerId) {
     is_active: true,
   }));
 
-  await Availability.upsert(records);
+  await Availability.replaceForProfessional(freelancerId, records);
 }
 
 module.exports = { seedDefaults };

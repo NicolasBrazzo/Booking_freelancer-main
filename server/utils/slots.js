@@ -30,8 +30,9 @@ const calculateAvailableSlots = async (professional, dateString, service) => {
   const date = new Date(dateString + "T00:00:00");
   const dayOfWeek = date.getDay();
 
-  const availability = await Availability.findByDay(professionalId, dayOfWeek);
-  if (!availability || !availability.is_active) return [];
+  // Una fascia oraria per riga: un giorno a orario spezzato ne ha più di una.
+  const windows = (await Availability.findByDay(professionalId, dayOfWeek)).filter((w) => w.is_active);
+  if (windows.length === 0) return [];
 
   // findByDateRange filtra per date >= startDate e date <= endDate
   // Passiamo inizio e fine giornata come timestamptz
@@ -39,14 +40,17 @@ const calculateAvailableSlots = async (professional, dateString, service) => {
   const dayEnd = `${dateString}T23:59:59`;
   const bookings = await Booking.findByDateRange(professionalId, dayStart, dayEnd);
 
-  const startMin = timeToMinutes(availability.start_time);
-  const endMin = timeToMinutes(availability.end_time);
   const duration = service.duration_minutes;
 
-  // Generate candidate slots
+  // Generate candidate slots, una finestra alla volta: così la pausa fra due
+  // fasce non produce candidati e un servizio non può sforare la chiusura.
   const candidates = [];
-  for (let cursor = startMin; cursor + duration <= endMin; cursor += SLOT_STEP_MINUTES) {
-    candidates.push({ start: cursor, end: cursor + duration });
+  for (const window of windows) {
+    const startMin = timeToMinutes(window.start_time);
+    const endMin = timeToMinutes(window.end_time);
+    for (let cursor = startMin; cursor + duration <= endMin; cursor += SLOT_STEP_MINUTES) {
+      candidates.push({ start: cursor, end: cursor + duration });
+    }
   }
 
   // Map existing bookings (timestamptz) to minutes-of-day

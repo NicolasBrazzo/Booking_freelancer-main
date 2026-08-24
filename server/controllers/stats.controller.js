@@ -68,7 +68,8 @@ router.get("/", protect, async (req, res) => {
     const { data: availability } = await supabase
       .from("bf_availability")
       .select("start_time, end_time")
-      .eq("professional_id", professionalId);
+      .eq("professional_id", professionalId)
+      .eq("is_active", true);
 
     const availableMinutes = (availability || []).reduce((sum, a) => {
       return sum + (timeToMinutes(a.end_time) - timeToMinutes(a.start_time));
