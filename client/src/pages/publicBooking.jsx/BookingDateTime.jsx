@@ -17,12 +17,15 @@ export const BookingDateTime = () => {
 
   const [selectedDate, setSelectedDate] = useState("");
 
-  const { data: profileData, isLoading: profileLoading } = useQuery({
+  const { data: profileData, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ["publicProfile", code],
     queryFn: () => fetchProfessionalBySlug(code),
+    // I 4 step del flusso rimontano la stessa query: senza questo il profilo
+    // viene rifetchato a ogni passaggio di pagina.
+    staleTime: 5 * 60 * 1000,
   });
 
-  const { data: slotsData, isLoading: slotsLoading } = useQuery({
+  const { data: slotsData, isLoading: slotsLoading, error: slotsError } = useQuery({
     queryKey: ["slots", code, selectedDate, serviceId],
     queryFn: () => fetchAvailableSlots(code, selectedDate, serviceId),
     enabled: !!selectedDate && !!serviceId,
@@ -33,7 +36,9 @@ export const BookingDateTime = () => {
   if (!profileData?.data) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Professionista non trovato.</p>
+        <p className={profileError ? "text-destructive" : "text-muted-foreground"}>
+          {profileError?.message ?? "Professionista non trovato."}
+        </p>
       </div>
     );
   }
@@ -94,6 +99,10 @@ export const BookingDateTime = () => {
             {slotsLoading ? (
               <div className="flex justify-center py-8">
                 <div className="w-6 h-6 rounded-full border-2 border-foreground/20 border-t-foreground animate-spin" />
+              </div>
+            ) : slotsError ? (
+              <div className="bg-background border rounded-2xl p-6 text-center text-destructive text-sm">
+                {slotsError.message}
               </div>
             ) : slots.length === 0 ? (
               <div className="bg-background border rounded-2xl p-6 text-center text-muted-foreground text-sm">

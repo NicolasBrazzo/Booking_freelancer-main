@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
+@import "react-day-picker/style.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -328,4 +329,27 @@ body {
   .animate-delay-2 { animation-delay: 0.16s; }
   .animate-delay-3 { animation-delay: 0.24s; }
   .animate-delay-4 { animation-delay: 0.32s; }
+}
+
+/* ============================================
+   react-day-picker (calendario delle chiusure)
+   ============================================
+   Le variabili della libreria stanno su .rdp-root, non su :root: qui vengono
+   riportate sui token di brand definiti più sopra, così il calendario segue il
+   tema chiaro/scuro senza un foglio di stile parallelo. */
+.rdp-root {
+  --rdp-accent-color: var(--color-primary);
+  --rdp-accent-background-color: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  --rdp-today-color: var(--color-accent);
+  --rdp-day-height: 40px;
+  --rdp-day-width: 40px;
+  --rdp-day_button-height: 38px;
+  --rdp-day_button-width: 38px;
+}
+
+/* Un giorno chiuso si legge molto meglio pieno che con il solo bordo. */
+.rdp-selected .rdp-day_button {
+  background-color: var(--color-primary);
+  color: #FAFAF9;
+  font-weight: 600;
 }

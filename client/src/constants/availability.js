@@ -27,3 +27,15 @@ export const DEFAULT_SPLIT = [
   { start_time: "09:00", end_time: "13:00" },
   { start_time: "15:00", end_time: "19:00" },
 ];
+
+// Finestra su cui lavora il calendario delle chiusure: da oggi a +12 mesi.
+// Il salvataggio ha semantica "in questo intervallo le chiusure sono esattamente
+// queste", quindi la finestra dev'essere fissa e non legata al mese visualizzato:
+// altrimenti navigare fra i mesi e salvare cancellerebbe le chiusure fuori vista.
+// Le chiusure passate restano intoccate perché stanno prima dell'inizio finestra.
+export const CLOSURE_WINDOW_MONTHS = 12;
+
+export const AVAILABILITY_TABS = [
+  { id: "orari", label: "Orari standard" },
+  { id: "chiusure", label: "Chiusure" },
+];

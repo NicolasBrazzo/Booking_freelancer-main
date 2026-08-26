@@ -26,12 +26,21 @@
 -- Controllo preliminare: dev'essere vuota, il check più sotto la rifiuterebbe.
 --   select * from bf_availability where end_time <= start_time;
 
+-- Gli "if exists" e il drop prima di ogni add rendono lo script ri-eseguibile:
+-- applicato a mano, capita di rilanciarlo per sicurezza.
+
 alter table bf_availability
-  drop constraint bf_availability_professional_id_day_of_week_key;
+  drop constraint if exists bf_availability_professional_id_day_of_week_key;
+
+alter table bf_availability
+  drop constraint if exists bf_availability_unique_fascia;
 
 alter table bf_availability
   add constraint bf_availability_unique_fascia
   unique (professional_id, day_of_week, start_time);
+
+alter table bf_availability
+  drop constraint if exists bf_availability_time_order;
 
 alter table bf_availability
   add constraint bf_availability_time_order
@@ -40,5 +49,5 @@ alter table bf_availability
 -- Le fasce si leggono sempre per (professionista, giorno) ordinate per orario.
 drop index if exists idx_availability_professional;
 
-create index idx_availability_professional_day
+create index if not exists idx_availability_professional_day
   on bf_availability(professional_id, day_of_week, start_time);

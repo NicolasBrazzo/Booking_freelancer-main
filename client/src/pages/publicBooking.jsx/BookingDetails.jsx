@@ -33,6 +33,9 @@ export const BookingDetails = () => {
   const { data: profileData, isLoading: profileLoading } = useQuery({
     queryKey: ["publicProfile", code],
     queryFn: () => fetchProfessionalBySlug(code),
+    // I 4 step del flusso rimontano la stessa query: senza questo il profilo
+    // viene rifetchato a ogni passaggio di pagina.
+    staleTime: 5 * 60 * 1000,
   });
 
   const bookingMutation = useMutation({

@@ -11,8 +11,10 @@ import {
   DEFAULT_AVAILABILITY,
   DEFAULT_SPLIT,
   BREAK_MINUTES,
+  AVAILABILITY_TABS,
 } from "@/constants/availability";
 import { Loader } from "@/components/Loader";
+import { Closures } from "@/components/availability/Closures";
 
 // Da capire come migliorare
 const timeInputClass =
@@ -54,6 +56,7 @@ const mergeSlots = (slots) => [
 export const Availability = () => {
   const queryClient = useQueryClient();
   const [localAvailability, setLocalAvailability] = useState([]);
+  const [activeTab, setActiveTab] = useState("orari");
 
   const { data, isLoading } = useQuery({
     queryKey: ["availability"],
@@ -154,10 +157,6 @@ export const Availability = () => {
     mutation.mutate(payload);
   };
 
-  if (isLoading) {
-    return <Loader />;
-  }
-
   return (
     <div className="p-6 space-y-8 max-w-3xl">
       <div className="page-in">
@@ -168,6 +167,33 @@ export const Availability = () => {
         </p>
       </div>
 
+      <div
+        role="tablist"
+        aria-label="Sezioni della disponibilità"
+        className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5 page-in-d1"
+      >
+        {AVAILABILITY_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+              activeTab === tab.id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "chiusure" && <Closures />}
+
+      {activeTab === "orari" && (isLoading ? <Loader /> : (
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden page-in-d1">
         <div className="divide-y divide-border">
           {localAvailability.map((dayAvailability, index) => {
@@ -280,6 +306,7 @@ export const Availability = () => {
           </Button>
         </div>
       </div>
+      ))}
     </div>
   );
 };

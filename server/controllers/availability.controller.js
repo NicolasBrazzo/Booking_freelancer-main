@@ -1,8 +1,14 @@
 const express = require("express");
 const protect = require("../middleware/auth");
 const { validateFields } = require("../utils/validators/validateFields");
-const { availabilityDayRules } = require("../constants/validationRules");
+const { validate, validateQuery } = require("../middleware/validate");
+const {
+  availabilityDayRules,
+  closureRules,
+  closureRangeQueryRules,
+} = require("../constants/validationRules");
 const { findByProfessionalId, replaceForProfessional } = require("../models/availability.model");
+const Exceptions = require("../models/availabilityExceptions.model");
 
 const router = express.Router();
 
@@ -83,6 +89,75 @@ router.put("/", protect, async (req, res) => {
   } catch (error) {
     console.error("SAVE AVAILABILITY ERROR:", error);
     res.status(500).json({ ok: false, error: "Errore nel salvataggio della disponibilità" });
+  }
+});
+
+// ============================================
+// Eccezioni: ferie e chiusure straordinarie
+// ============================================
+
+// GET /api/availability/exceptions?from=&to= — Eccezioni nell'intervallo
+router.get("/exceptions", protect, validateQuery(closureRangeQueryRules), async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const data = await Exceptions.findByDateRange(req.user.sub, from, to);
+    res.json({ ok: true, data });
+  } catch (error) {
+    console.error("FIND EXCEPTIONS ERROR:", error);
+    res.status(500).json({ ok: false, error: "Errore nel recupero delle chiusure" });
+  }
+});
+
+// PUT /api/availability/exceptions — Sostituisce le chiusure dell'intervallo
+//
+// Semantica replace: "in [from, to] le chiusure sono esattamente queste". Il
+// client manda sempre una finestra fissa (da oggi a +12 mesi), così navigare fra
+// i mesi del calendario non può cancellare chiusure fuori dalla vista, e quelle
+// passate non vengono mai toccate perché stanno prima di from.
+router.put("/exceptions", protect, validate(closureRules), async (req, res) => {
+  try {
+    const { from, to, note } = req.body;
+    const dates = req.body.dates ?? [];
+
+    if (from > to) {
+      return res.status(400).json({ ok: false, error: "L'intervallo selezionato non è valido" });
+    }
+    if (dates.some((date) => date < from || date > to)) {
+      return res.status(400).json({ ok: false, error: "Alcune date sono fuori dall'intervallo selezionato" });
+    }
+
+    const existing = await Exceptions.findByDateRange(req.user.sub, from, to);
+
+    // Solo le chiusure di giornata intera: le righe con orari valorizzati sono
+    // previste dallo schema (orario straordinario su una data) e questo endpoint
+    // non deve né contarle né cancellarle.
+    const closedDates = existing.filter((row) => !row.start_time).map((row) => row.date);
+
+    const toCreate = dates.filter((date) => !closedDates.includes(date));
+    const toDelete = closedDates.filter((date) => !dates.includes(date));
+
+    // Prima si scrive, poi si cancella: un errore a metà lascia qualche chiusura
+    // di troppo, mai un giorno aperto per sbaglio.
+    if (toCreate.length > 0) {
+      await Exceptions.createMany(
+        toCreate.map((date) => ({
+          professional_id: req.user.sub,
+          date,
+          start_time: null,
+          end_time: null,
+          note: note || null,
+        }))
+      );
+    }
+    if (toDelete.length > 0) {
+      await Exceptions.deleteByDates(req.user.sub, toDelete);
+    }
+
+    const data = await Exceptions.findByDateRange(req.user.sub, from, to);
+    res.json({ ok: true, data });
+  } catch (error) {
+    console.error("SAVE EXCEPTIONS ERROR:", error);
+    res.status(500).json({ ok: false, error: "Errore nel salvataggio delle chiusure" });
   }
 });
 

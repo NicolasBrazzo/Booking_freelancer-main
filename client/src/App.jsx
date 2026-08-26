@@ -24,7 +24,19 @@ import { EarlyAccess } from "./pages/EarlyAccess.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Coi default (3 retry) un 429 diventa 4 richieste e tiene il rate limiter
+      // fisso al massimo: da un 4xx non si esce insistendo, solo aspettando.
+      retry: (failureCount, error) => {
+        if (error?.status >= 400 && error?.status < 500) return false;
+        return failureCount < 2;
+      },
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const ProfileCompleteRoute = () => {
   const { firstAccess, loading } = useAuth();

@@ -14,6 +14,9 @@ export const BookingPublic = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["publicProfile", code],
     queryFn: () => fetchProfessionalBySlug(code),
+    // I 4 step del flusso rimontano la stessa query: senza questo il profilo
+    // viene rifetchato a ogni passaggio di pagina.
+    staleTime: 5 * 60 * 1000,
   });
 
   if (isLoading) return <Loader />;

@@ -14,6 +14,7 @@ import {
   isValidText,
   isValidDuration,
   isValidPrice,
+  isValidDate,
 } from "@/utils/validators";
 
 export const MAX_DURATION_MINUTES = 1440;
@@ -90,5 +91,34 @@ export const waitlistRules = {
     required: "L'email è obbligatoria",
     check: (value) => validateEmail(value) && value.length <= 254,
     message: "Inserisci un'email valida",
+  },
+};
+
+// Chiusure straordinarie: il salvataggio ha semantica "in questo intervallo le
+// chiusure sono esattamente queste", quindi from/to fanno parte del body.
+// Il tetto sulle date evita che un payload assurdo diventi un insert enorme.
+export const MAX_CLOSURE_DATES = 366;
+
+export const closureRules = {
+  from: {
+    required: "Intervallo mancante",
+    check: isValidDate,
+    message: "L'intervallo selezionato non è valido",
+  },
+  to: {
+    required: "Intervallo mancante",
+    check: isValidDate,
+    message: "L'intervallo selezionato non è valido",
+  },
+  // Volutamente senza required: deselezionare tutto e salvare significa
+  // "riapri tutte le chiusure", ed è un'operazione legittima.
+  dates: {
+    check: (value) =>
+      Array.isArray(value) && value.length <= MAX_CLOSURE_DATES && value.every(isValidDate),
+    message: "Le date selezionate non sono valide",
+  },
+  note: {
+    check: (value) => isValidText(value, 0, 100),
+    message: "La nota non può superare i 100 caratteri",
   },
 };

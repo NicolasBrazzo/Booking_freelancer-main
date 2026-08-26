@@ -1,4 +1,5 @@
 const Availability = require("../models/availability.model");
+const Exceptions = require("../models/availabilityExceptions.model");
 const Booking = require("../models/bookings.model");
 const { getCalendarEvents } = require("../services/googleCalendar");
 
@@ -29,6 +30,12 @@ const calculateAvailableSlots = async (professional, dateString, service) => {
   const professionalId = professional.id;
   const date = new Date(dateString + "T00:00:00");
   const dayOfWeek = date.getDay();
+
+  // Le eccezioni vincono sugli orari standard. Le righe con orari valorizzati
+  // (orario straordinario su una data) sono previste dallo schema ma non ancora
+  // prodotte da nessuna schermata: qui contano solo le chiusure di giornata.
+  const exceptions = await Exceptions.findByDate(professionalId, dateString);
+  if (exceptions.some((exception) => !exception.start_time)) return [];
 
   // Una fascia oraria per riga: un giorno a orario spezzato ne ha più di una.
   const windows = (await Availability.findByDay(professionalId, dayOfWeek)).filter((w) => w.is_active);

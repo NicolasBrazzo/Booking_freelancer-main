@@ -14,7 +14,7 @@ const findByProfessionalId = async (professionalId) => {
     .order("day_of_week", { ascending: true })
     .order("start_time", { ascending: true });
 
-  if (error) throw new Error("DB_FIND_AVAILABILITY_ERROR");
+  if (error) throw new Error("DB_FIND_AVAILABILITY_ERROR", { cause: error });
   return data;
 };
 
@@ -27,7 +27,7 @@ const findByDay = async (professionalId, dayOfWeek) => {
     .eq("day_of_week", dayOfWeek)
     .order("start_time", { ascending: true });
 
-  if (error) throw new Error("DB_FIND_AVAILABILITY_BY_DAY_ERROR");
+  if (error) throw new Error("DB_FIND_AVAILABILITY_BY_DAY_ERROR", { cause: error });
   return data;
 };
 
@@ -44,7 +44,7 @@ const replaceForProfessional = async (professionalId, rows) => {
     .upsert(rows, { onConflict: "professional_id,day_of_week,start_time" })
     .select();
 
-  if (error) throw new Error("DB_UPSERT_AVAILABILITY_ERROR");
+  if (error) throw new Error("DB_UPSERT_AVAILABILITY_ERROR", { cause: error });
 
   const keptIds = data.map((row) => row.id);
   if (keptIds.length === 0) return data;
@@ -55,7 +55,7 @@ const replaceForProfessional = async (professionalId, rows) => {
     .eq("professional_id", professionalId)
     .not("id", "in", `(${keptIds.join(",")})`);
 
-  if (deleteError) throw new Error("DB_DELETE_AVAILABILITY_ERROR");
+  if (deleteError) throw new Error("DB_DELETE_AVAILABILITY_ERROR", { cause: deleteError });
   return data;
 };
 
