@@ -85,7 +85,26 @@ git -c core.hooksPath=/dev/null commit -m "..."
 
 ## La versione nell'app
 
-`client/vite.config.js` legge `package.json` e inietta il numero come
-`__APP_VERSION__` a build time. Vite valuta la config una volta sola all'avvio,
-quindi il numero nuovo compare **alla build successiva** (o al riavvio del dev
-server), non nell'istante del commit.
+`client/vite.config.js` legge il numero e lo passa come
+`process.env.VITE_APP_VERSION`; Vite raccoglie le chiavi con prefisso `VITE_` e
+le espone alla pagina come `import.meta.env.VITE_APP_VERSION`. La config viene
+valutata una volta sola all'avvio, quindi il numero nuovo compare **alla build
+successiva** (o al riavvio del dev server), non nell'istante del commit.
+
+Il valore viene cercato in tre posti, in quest'ordine:
+
+1. `VITE_APP_VERSION` già presente in ambiente
+2. `package.json` della radice
+3. `client/package.json`
+
+e se non lo trova da nessuna parte ripiega su `0.0.0`. La catena non è
+difensiva per abitudine: il servizio frontend builda con **root directory
+`client/`**, quindi il `package.json` della radice è fuori dal suo contesto e
+non è leggibile. Prima che ci fosse il fallback quella lettura faceva **fallire
+il build** in produzione.
+
+È anche il motivo per cui l'hook scrive la versione in **due file**: la radice
+resta la fonte di verità — è lì che `npm version` calcola il bump — e
+`client/package.json` ne è una copia, l'unica che il build del frontend riesce
+effettivamente a leggere. Non modificarli in modo indipendente: se divergono, in
+locale vedi il numero della radice e in produzione quello del client.

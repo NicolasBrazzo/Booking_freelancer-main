@@ -58,7 +58,13 @@ if [ -z "$new_version" ]; then
   exit 0
 fi
 
-git add package.json
+# Il servizio frontend builda con root directory client/, quindi il package.json
+# della radice resta fuori dal suo contesto: vite.config.js non lo trova e la
+# versione mostrata in produzione sarebbe quella di fallback. client/package.json
+# invece nel build c'e' sempre, percio' il numero lo teniamo anche li'.
+npm version "$new_version" --no-git-tag-version --prefix client >/dev/null 2>&1
+
+git add package.json client/package.json
 git commit --amend --no-edit --no-verify --quiet
 
 echo "  versione -> $new_version ($level)" >&2
