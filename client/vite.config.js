@@ -13,8 +13,24 @@ import { readFileSync } from 'fs'
 // identificatore non definito. Vite invece raccoglie da process.env tutte le
 // chiavi con prefisso VITE_ e le espone come import.meta.env in entrambi i casi.
 const packageJsonPath = path.resolve(__dirname, '../package.json')
-const packageVersion = JSON.parse(readFileSync(packageJsonPath, 'utf-8')).version
-process.env.VITE_APP_VERSION = packageVersion
+
+// Il package.json di root sta fuori da client/, quindi in un build con root
+// directory su client/ (com'e' quello di Railway) non e' nel contesto e la
+// lettura fallisce. Una versione mancante non e' un buon motivo per far cadere
+// il build: ripieghiamo su quella gia' in ambiente, poi sul package.json locale.
+function readVersion() {
+  const candidates = [packageJsonPath, path.resolve(__dirname, 'package.json')]
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(readFileSync(candidate, 'utf-8')).version
+    } catch {
+      // fuori dal contesto di build o illeggibile: passiamo al prossimo
+    }
+  }
+  return null
+}
+
+process.env.VITE_APP_VERSION = process.env.VITE_APP_VERSION || readVersion() || '0.0.0'
 
 // Vite valuta questo file una volta sola, quindi in dev la versione resterebbe
 // quella del momento in cui hai avviato il server. Dato che l'hook post-commit
